@@ -1,0 +1,26 @@
+name: Linux checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Check dependency script
+        run: |
+          bash -n scripts/linux-deps.sh
+          bash scripts/linux-deps.sh --dry-run
+      - name: Install official Neovim and verify API
+        run: |
+          python3 scripts/install-neovim.py
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Test installer, configuration and real decoding in a PTY
+        run: python3 -m unittest discover -s tests -v
+      - name: Load plugin in Neovim
+        run: |
+          nvim --headless -u NONE --cmd "set runtimepath^=$GITHUB_WORKSPACE" \
+            '+runtime plugin/br.lua' \
+            '+lua assert(vim.fn.exists(":BR") == 2); assert(not require("br").status().running)' +qa

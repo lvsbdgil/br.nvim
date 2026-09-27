@@ -5,11 +5,34 @@
 
 ## Требования
 
-- macOS, Kitty и Neovim **0.12+** (`nvim_ui_send`).
-- `python3`, `ffmpeg` и `ffprobe` в PATH.
+- Linux или macOS, Kitty и Neovim **0.12+** (`nvim_ui_send`).
+- Python 3.9+ (`python3`), `ffmpeg` и `ffprobe` в PATH.
 - Локальный запуск Neovim непосредственно в Kitty, без tmux и SSH.
 
-## Установка
+## Установка на Linux
+
+[Полный гайд для Linux](docs/INSTALL.linux.ru.md) — Debian/Ubuntu, Fedora,
+Arch/Manjaro и openSUSE. Сначала скачай этот приватный репозиторий через GitHub CLI
+или Git с настроенным SSH, затем из его каталога:
+
+```sh
+bash scripts/linux-deps.sh --dry-run
+bash scripts/linux-deps.sh
+# Если пакетный Neovim старее 0.12:
+python3 scripts/install-neovim.py
+export PATH="$HOME/.local/bin:$PATH"
+python3 scripts/br.py install --video "$HOME/Videos/test.mp4"
+# Следующую команду выполняй внутри Kitty:
+python3 scripts/br.py doctor --video "$HOME/Videos/test.mp4"
+nvim
+```
+
+`linux-deps.sh` устанавливает системные пакеты через sudo; на Arch также обновляет систему.
+Остальные скрипты запускаются без sudo. Каталог репозитория должен оставаться на месте:
+установщик создаёт на него ссылку. Пользовательский `init.lua` не меняется.
+Видео нужно заранее положить по указанному пути.
+
+## Установка на macOS
 
 ```sh
 brew install neovim ffmpeg python gh
@@ -25,7 +48,7 @@ gh repo clone lvsbdgil/br.nvim "$HOME/.local/share/nvim/site/pack/local/start/br
 Положи видео в `~/Movies/test.mp4`. Открой Kitty, запусти `nvim`, введи `:br` и Enter.
 Повтори команду для остановки. Видео не включено в репозиторий.
 
-[Полная инструкция и устранение ошибок](docs/INSTALL.ru.md).
+[Гайд macOS и устранение ошибок](docs/INSTALL.ru.md).
 
 ## Настройки
 
@@ -79,6 +102,37 @@ FFmpeg декодирует исходное видео в RGB24. Кадры б�
 основана на средней частоте кадров, поэтому точные временные интервалы VFR не сохраняются.
 При перегрузке воспроизведение может замедлиться. Полная перерисовка Neovim может
 временно убрать изображение до следующего кадра. Маленькое окно ограничивает размер видео.
+
+## Скрипты управления
+
+Запускай из корня репозитория:
+
+| Команда | Назначение |
+|---|---|
+| `bash scripts/linux-deps.sh [--dry-run]` | Установка пакетов Linux / просмотр команд |
+| `python3 scripts/install-neovim.py [--dry-run]` | Официальный stable Neovim для Linux с проверкой SHA256 |
+| `python3 scripts/br.py install --video /путь/видео.mp4` | Подключить плагин и создать настройки |
+| `python3 scripts/br.py configure --video /путь/видео.mp4 --columns 48 --rows 32` | Изменить настройки с резервной копией |
+| `python3 scripts/br.py doctor --video /путь/видео.mp4` | Проверить зависимости, файл, установку и сеанс Kitty |
+| `python3 scripts/br.py update` | Обновить чистую Git-копию через fast-forward |
+| `python3 scripts/br.py uninstall` | Удалить управляемую ссылку, сохранить настройки в резервной копии |
+
+Пути с пробелами заключай в кавычки. Настройки учитывают XDG и `NVIM_APPNAME`.
+Для статической диагностики вне Kitty добавь `--no-terminal` к `doctor`.
+`configure` записывает все параметры: передавай свой `--video` при каждом вызове.
+
+## Проверки автоматизации
+
+```sh
+python3 -m unittest discover -s tests -v
+bash -n scripts/linux-deps.sh
+```
+
+Тесты проверяют установку в изолированный профиль, повторную установку, резервные копии,
+защиту чужих файлов, пути с кавычками, tty Linux/macOS и реальное декодирование FFmpeg в PTY
+с очисткой временных кадров. GitHub Actions запускает их на Ubuntu 24.04 и проверяет
+установку официальной сборки Neovim. Графический вывод на Linux требует отдельной
+ручной проверки в Kitty; CI не заменяет эту проверку.
 
 ## Обновление
 
